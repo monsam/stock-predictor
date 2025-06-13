@@ -1,4 +1,4 @@
-# Demo Web Shop Test Framework
+# Cursor AI Demo Web Shop Test Framework
 
 This is a BDD (Behavior Driven Development) test framework for the Demo Web Shop using Python, Selenium, and Pytest-BDD.
 
@@ -29,8 +29,8 @@ This is a BDD (Behavior Driven Development) test framework for the Demo Web Shop
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd demo-web-shop-tests
+git clone https://github.com/YOUR_USERNAME/cursor_ai_demo-web-shop-tests.git
+cd cursor_ai_demo-web-shop-tests
 ```
 
 2. Create and activate a virtual environment:
