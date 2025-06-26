@@ -7,6 +7,12 @@ import os
 from dotenv import load_dotenv
 import ta
 from datetime import datetime, timedelta
+import time
+import pandas as pd
+import warnings
+
+# Suppress RuntimeWarnings from technical analysis library
+warnings.filterwarnings('ignore', category=RuntimeWarning, module='ta')
 
 app = Flask(__name__)
 load_dotenv()
@@ -36,31 +42,77 @@ STOCKS = [
 def get_technical_indicators(data):
     """Calculate technical indicators for the stock"""
     try:
+        # Check if we have enough data points
+        if len(data) < 20:  # Need at least 20 data points for reliable indicators
+            print(f"Not enough data points ({len(data)}) for technical indicators")
+            return None
+        
+        # Clean the data by removing any NaN values
+        data_clean = data.dropna()
+        if len(data_clean) < 20:
+            print(f"Not enough clean data points ({len(data_clean)}) for technical indicators")
+            return None
+        
         # Calculate RSI
-        rsi = ta.momentum.RSIIndicator(data['Close']).rsi().iloc[-1]
+        try:
+            rsi = ta.momentum.RSIIndicator(data_clean['Close']).rsi().iloc[-1]
+            if pd.isna(rsi):
+                rsi = 50  # Default neutral value
+        except Exception:
+            rsi = 50
         
         # Calculate MACD
-        macd = ta.trend.MACD(data['Close'])
-        macd_line = macd.macd().iloc[-1]
+        try:
+            macd = ta.trend.MACD(data_clean['Close'])
+            macd_line = macd.macd().iloc[-1]
+            if pd.isna(macd_line):
+                macd_line = 0
+        except Exception:
+            macd_line = 0
         
         # Calculate Bollinger Bands
-        bollinger = ta.volatility.BollingerBands(data['Close'])
-        upper_band = bollinger.bollinger_hband().iloc[-1]
-        lower_band = bollinger.bollinger_lband().iloc[-1]
+        try:
+            bollinger = ta.volatility.BollingerBands(data_clean['Close'])
+            upper_band = bollinger.bollinger_hband().iloc[-1]
+            lower_band = bollinger.bollinger_lband().iloc[-1]
+            if pd.isna(upper_band) or pd.isna(lower_band):
+                upper_band = data_clean['Close'].iloc[-1] * 1.02
+                lower_band = data_clean['Close'].iloc[-1] * 0.98
+        except Exception:
+            upper_band = data_clean['Close'].iloc[-1] * 1.02
+            lower_band = data_clean['Close'].iloc[-1] * 0.98
         
-        # Calculate ADX
-        adx = ta.trend.ADXIndicator(data['High'], data['Low'], data['Close']).adx().iloc[-1]
+        # Calculate ADX (requires more data points)
+        try:
+            # Ensure we have enough data for ADX calculation (typically needs 14+ periods)
+            if len(data_clean) >= 14:
+                adx_indicator = ta.trend.ADXIndicator(data_clean['High'], data_clean['Low'], data_clean['Close'])
+                adx_series = adx_indicator.adx()
+                # Get the last valid ADX value
+                adx = adx_series.dropna().iloc[-1] if not adx_series.dropna().empty else 50
+                if pd.isna(adx) or adx <= 0:
+                    adx = 50  # Default neutral value if calculation fails
+            else:
+                adx = 50  # Not enough data for ADX
+        except (IndexError, ValueError, Exception) as e:
+            print(f"ADX calculation error: {e}")
+            adx = 50  # Default neutral value if calculation fails
         
         # Calculate OBV
-        obv = ta.volume.OnBalanceVolumeIndicator(data['Close'], data['Volume']).on_balance_volume().iloc[-1]
+        try:
+            obv = ta.volume.OnBalanceVolumeIndicator(data_clean['Close'], data_clean['Volume']).on_balance_volume().iloc[-1]
+            if pd.isna(obv):
+                obv = 0  # Default value if calculation fails
+        except (IndexError, ValueError, Exception):
+            obv = 0  # Default value if calculation fails
         
         return {
-            'rsi': rsi,
-            'macd': macd_line,
-            'upper_band': upper_band,
-            'lower_band': lower_band,
-            'adx': adx,
-            'obv': obv
+            'rsi': float(rsi),
+            'macd': float(macd_line),
+            'upper_band': float(upper_band),
+            'lower_band': float(lower_band),
+            'adx': float(adx),
+            'obv': float(obv)
         }
     except Exception as e:
         print(f"Error calculating technical indicators: {str(e)}")
@@ -109,7 +161,7 @@ def get_stock_data(symbol):
         
         # Get historical data
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=60)
         hist = stock.history(start=start_date, end=end_date)
         
         if hist.empty:
@@ -131,16 +183,16 @@ def get_stock_data(symbol):
         return {
             'symbol': symbol,
             'name': info.get('longName', symbol),
-            'price': current_price,
-            'change': price_change,
-            'volume': hist['Volume'].iloc[-1],
+            'price': float(current_price),
+            'change': float(price_change),
+            'volume': int(hist['Volume'].iloc[-1]),
             'sector': info.get('sector', 'Unknown'),
             'industry': info.get('industry', 'Unknown'),
-            'market_cap': info.get('marketCap', 0),
-            'pe_ratio': info.get('trailingPE', 0),
-            'rsi': indicators['rsi'],
-            'macd': indicators['macd'],
-            'sentiment': sentiment
+            'market_cap': int(info.get('marketCap', 0)),
+            'pe_ratio': float(info.get('trailingPE', 0)),
+            'rsi': float(indicators['rsi']),
+            'macd': float(indicators['macd']),
+            'sentiment': float(sentiment)
         }
     except Exception as e:
         print(f"Error getting stock data for {symbol}: {str(e)}")
@@ -193,6 +245,9 @@ def analyze_stocks():
         data['signal'] = signal
         data['score'] = final_score
         recommendations.append(data)
+        
+        # Add a delay to avoid hitting API rate limits
+        time.sleep(5)
     
     # Sort by score and return top 5
     recommendations.sort(key=lambda x: x['score'], reverse=True)
