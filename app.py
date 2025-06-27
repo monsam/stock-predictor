@@ -414,6 +414,63 @@ def get_predictions():
         print("Using mock data as fallback")
         return jsonify(get_mock_predictions())
 
+@app.route('/search_stock/<symbol>')
+def search_stock(symbol):
+    """Search for a specific stock and return its prediction"""
+    try:
+        # Validate symbol
+        if not symbol or len(symbol) > 10:
+            return jsonify({'error': 'Invalid stock symbol'})
+        
+        # Get stock data
+        data = get_stock_data(symbol.upper())
+        if not data:
+            return jsonify({'error': f'Could not find data for {symbol.upper()}. Please check the symbol and try again.'})
+        
+        # Calculate technical score
+        technical_score = 0
+        if data['rsi'] < 30:  # Oversold
+            technical_score += 1
+        elif data['rsi'] > 70:  # Overbought
+            technical_score -= 1
+        
+        if data['macd'] > 0:  # Bullish MACD
+            technical_score += 1
+        else:  # Bearish MACD
+            technical_score -= 1
+        
+        # Calculate sentiment score
+        sentiment_score = (data['sentiment'] + 1) / 2  # Normalize to 0-1
+        
+        # Calculate momentum score
+        momentum_score = 1 if data['change'] > 0 else 0
+        
+        # Calculate final score (weighted average)
+        final_score = (
+            technical_score * 0.4 +
+            sentiment_score * 0.3 +
+            momentum_score * 0.3
+        )
+        
+        # Determine trading signal
+        if final_score > 0.6:
+            signal = "Strong Buy"
+        elif final_score > 0.4:
+            signal = "Buy"
+        elif final_score < 0.4:
+            signal = "Sell"
+        else:
+            signal = "Hold"
+        
+        data['signal'] = signal
+        data['score'] = final_score
+        
+        return jsonify(data)
+        
+    except Exception as e:
+        print(f"Error searching for stock {symbol}: {str(e)}")
+        return jsonify({'error': f'Error analyzing {symbol.upper()}. Please try again.'})
+
 @app.route('/get_prediction')
 def get_prediction():
     return get_predictions()

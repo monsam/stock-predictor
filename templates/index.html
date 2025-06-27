@@ -104,6 +104,21 @@
         <h1 class="text-center mb-4">AI Stock Predictor</h1>
         <div class="row justify-content-center">
             <div class="col-md-8">
+                <!-- Search Form -->
+                <div class="prediction-card mb-4">
+                    <h3 class="text-center mb-3">Search Any Stock</h3>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" id="searchSymbol" class="form-control" placeholder="Enter stock symbol (e.g., AAPL, TSLA, GOOGL)" maxlength="10">
+                        </div>
+                        <div class="col-md-4">
+                            <button onclick="searchStock()" class="btn btn-success w-100">Search Stock</button>
+                        </div>
+                    </div>
+                    <div id="searchResult" class="mt-3"></div>
+                </div>
+
+                <!-- Top 5 Recommendations -->
                 <div class="prediction-card">
                     <h2 class="text-center mb-4">Top 5 Stock Recommendations</h2>
                     <div class="loading">
@@ -222,6 +237,50 @@
                     predictionsDiv.innerHTML = '<div class="alert alert-danger">Error fetching predictions. Please try again.</div>';
                 });
         }
+
+        function searchStock() {
+            const symbol = document.getElementById('searchSymbol').value.trim().toUpperCase();
+            const searchResultDiv = document.getElementById('searchResult');
+            
+            if (!symbol) {
+                searchResultDiv.innerHTML = '<div class="alert alert-warning">Please enter a stock symbol.</div>';
+                return;
+            }
+
+            searchResultDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Searching for ${symbol}...</p>
+                </div>
+            `;
+
+            fetch(`/search_stock/${symbol}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        searchResultDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                        return;
+                    }
+                    searchResultDiv.innerHTML = `
+                        <div class="mt-3">
+                            <h4 class="text-center mb-3">Search Result for ${symbol}</h4>
+                            ${createStockCard(data)}
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    searchResultDiv.innerHTML = '<div class="alert alert-danger">Error searching for stock. Please try again.</div>';
+                });
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('searchSymbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchStock();
+            }
+        });
 
         // Get predictions when page loads
         window.onload = getPredictions;
