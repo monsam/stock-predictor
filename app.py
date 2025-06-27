@@ -153,6 +153,32 @@ def get_news_sentiment(symbol):
         print(f"Error getting news sentiment: {str(e)}")
         return 0.5
 
+def get_indicator_explanations(rsi, macd, adx):
+    """Get explanations for technical indicators"""
+    explanations = {}
+    
+    # RSI explanation
+    if rsi < 30:
+        explanations['rsi'] = f"RSI: {rsi:.1f} - Oversold (Bullish signal, stock may be undervalued)"
+    elif rsi > 70:
+        explanations['rsi'] = f"RSI: {rsi:.1f} - Overbought (Bearish signal, stock may be overvalued)"
+    else:
+        explanations['rsi'] = f"RSI: {rsi:.1f} - Neutral (Stock is neither overbought nor oversold)"
+    
+    # MACD explanation
+    if macd > 0:
+        explanations['macd'] = f"MACD: {macd:.2f} - Bullish (Moving average convergence indicates upward momentum)"
+    else:
+        explanations['macd'] = f"MACD: {macd:.2f} - Bearish (Moving average convergence indicates downward momentum)"
+    
+    # ADX explanation
+    if adx > 25:
+        explanations['adx'] = f"ADX: {adx:.1f} - Strong trend (Price movement is directional)"
+    else:
+        explanations['adx'] = f"ADX: {adx:.1f} - Weak trend (Price movement is sideways/choppy)"
+    
+    return explanations
+
 def get_stock_data(symbol):
     """Get comprehensive stock data"""
     try:
@@ -180,6 +206,13 @@ def get_stock_data(symbol):
         prev_price = hist['Close'].iloc[-2]
         price_change = ((current_price - prev_price) / prev_price) * 100
         
+        # Get indicator explanations
+        explanations = get_indicator_explanations(
+            indicators['rsi'], 
+            indicators['macd'], 
+            indicators['adx']
+        )
+        
         return {
             'symbol': symbol,
             'name': info.get('longName', symbol),
@@ -192,7 +225,8 @@ def get_stock_data(symbol):
             'pe_ratio': float(info.get('trailingPE', 0)),
             'rsi': float(indicators['rsi']),
             'macd': float(indicators['macd']),
-            'sentiment': float(sentiment)
+            'sentiment': float(sentiment),
+            'explanations': explanations
         }
     except Exception as e:
         print(f"Error getting stock data for {symbol}: {str(e)}")
@@ -270,7 +304,12 @@ def get_mock_predictions():
             'macd': 2.5,
             'sentiment': 0.3,
             'score': 0.75,
-            'signal': 'Buy'
+            'signal': 'Buy',
+            'explanations': {
+                'rsi': 'RSI: 55.0 - Neutral (Stock is neither overbought nor oversold)',
+                'macd': 'MACD: 2.50 - Bullish (Moving average convergence indicates upward momentum)',
+                'adx': 'ADX: 45.0 - Strong trend (Price movement is directional)'
+            }
         },
         {
             'symbol': 'MSFT',
@@ -286,7 +325,12 @@ def get_mock_predictions():
             'macd': 3.2,
             'sentiment': 0.4,
             'score': 0.72,
-            'signal': 'Buy'
+            'signal': 'Buy',
+            'explanations': {
+                'rsi': 'RSI: 58.0 - Neutral (Stock is neither overbought nor oversold)',
+                'macd': 'MACD: 3.20 - Bullish (Moving average convergence indicates upward momentum)',
+                'adx': 'ADX: 52.0 - Strong trend (Price movement is directional)'
+            }
         },
         {
             'symbol': 'GOOGL',
@@ -302,7 +346,12 @@ def get_mock_predictions():
             'macd': -1.5,
             'sentiment': 0.2,
             'score': 0.65,
-            'signal': 'Hold'
+            'signal': 'Hold',
+            'explanations': {
+                'rsi': 'RSI: 45.0 - Neutral (Stock is neither overbought nor oversold)',
+                'macd': 'MACD: -1.50 - Bearish (Moving average convergence indicates downward momentum)',
+                'adx': 'ADX: 35.0 - Strong trend (Price movement is directional)'
+            }
         },
         {
             'symbol': 'AMZN',
@@ -318,7 +367,12 @@ def get_mock_predictions():
             'macd': 2.8,
             'sentiment': 0.35,
             'score': 0.68,
-            'signal': 'Buy'
+            'signal': 'Buy',
+            'explanations': {
+                'rsi': 'RSI: 62.0 - Neutral (Stock is neither overbought nor oversold)',
+                'macd': 'MACD: 2.80 - Bullish (Moving average convergence indicates upward momentum)',
+                'adx': 'ADX: 48.0 - Strong trend (Price movement is directional)'
+            }
         },
         {
             'symbol': 'NVDA',
@@ -334,7 +388,12 @@ def get_mock_predictions():
             'macd': 4.2,
             'sentiment': 0.45,
             'score': 0.80,
-            'signal': 'Strong Buy'
+            'signal': 'Strong Buy',
+            'explanations': {
+                'rsi': 'RSI: 65.0 - Neutral (Stock is neither overbought nor oversold)',
+                'macd': 'MACD: 4.20 - Bullish (Moving average convergence indicates upward momentum)',
+                'adx': 'ADX: 55.0 - Strong trend (Price movement is directional)'
+            }
         }
     ]
 

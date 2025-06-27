@@ -84,6 +84,19 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        .stock-explanations {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 4px solid #007bff;
+        }
+        .explanation-item {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .explanation-item small {
+            color: #495057 !important;
+        }
     </style>
 </head>
 <body>
@@ -128,6 +141,25 @@
         }
 
         function createStockCard(stock) {
+            // Create explanations section if available
+            let explanationsHtml = '';
+            if (stock.explanations) {
+                explanationsHtml = `
+                    <div class="stock-explanations mt-3">
+                        <h6 class="text-muted mb-2">Technical Analysis:</h6>
+                        <div class="explanation-item mb-1">
+                            <small class="text-info">${stock.explanations.rsi || 'RSI: No data available'}</small>
+                        </div>
+                        <div class="explanation-item mb-1">
+                            <small class="text-info">${stock.explanations.macd || 'MACD: No data available'}</small>
+                        </div>
+                        <div class="explanation-item mb-1">
+                            <small class="text-info">${stock.explanations.adx || 'ADX: No data available'}</small>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="stock-card">
                     <div class="stock-header">
@@ -163,6 +195,7 @@
                             <span class="stock-detail-label">MACD:</span> ${stock.macd.toFixed(2)}
                         </div>
                     </div>
+                    ${explanationsHtml}
                 </div>
             `;
         }
